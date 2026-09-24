@@ -506,7 +506,10 @@ app.post('/api/auth/google', (req, res, next) => {
     const photo = payload.picture || null;
 
     let user = await User.findOne({ email });
+    let isNewUser = false;
+    
     if (!user) {
+      isNewUser = true;
       // Create user with secure random password
       const secureRandomPassword = crypto.randomBytes(32).toString('hex') + '!Aa1';
       user = await User.create({
@@ -546,7 +549,8 @@ app.post('/api/auth/google', (req, res, next) => {
         photo: user.photo,
         role: user.role
       },
-      token
+      token,
+      isNewUser
     });
   } catch (err) {
     console.error('Google token verification failed:', err);
