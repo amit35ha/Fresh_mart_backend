@@ -976,7 +976,7 @@ app.put('/api/orders/:id/status', authenticateToken, requireAdmin, async (req, r
 app.use((err, req, res, next) => {
   void next;
   console.error('SERVER ERROR:', err.message || err);
-  res.status(500).json({ error: 'An internal server error occurred.' });
+  res.status(500).json({ error: err.message || 'An internal server error occurred.' });
 });
 
 // Start express server
