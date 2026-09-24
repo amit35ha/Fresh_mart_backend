@@ -550,7 +550,7 @@ app.post('/api/auth/google', (req, res, next) => {
     });
   } catch (err) {
     console.error('Google token verification failed:', err);
-    res.status(401).json({ error: 'Google authentication verification failed.' });
+    res.status(401).json({ error: `Google auth failed: ${err.message || err}` });
   }
 });
 
