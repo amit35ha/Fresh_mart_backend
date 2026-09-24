@@ -971,19 +971,7 @@ app.put('/api/orders/:id/status', authenticateToken, requireAdmin, async (req, r
 // ==========================================================================
 // 9. CENTRALIZED ERROR HANDLING MIDDLEWARE
 // ==========================================================================
-if (NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '..', 'dist');
 
-  app.use(express.static(distPath));
-
-  app.use('/api', (req, res) => {
-    res.status(404).json({ error: 'API route not found.' });
-  });
-
-  app.get(/.*/, (req, res) => {
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-}
 
 app.use((err, req, res, next) => {
   void next;
