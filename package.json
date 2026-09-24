@@ -6,7 +6,7 @@
 "scripts": {
 "dev": "vite",
 "server": "nodemon server.js",
-"concurrent": "concurrently "npm run dev" "npm run server"",
+"concurrent": "concurrently \"npm run dev\" \"npm run server\"",
 "build": "vite build",
 "lint": "eslint .",
 "preview": "vite preview",
