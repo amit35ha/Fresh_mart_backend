@@ -120,14 +120,34 @@ const orderLimiter = rateLimit({
 // ==========================================================================
 // 4. DATABASE CONNECTION
 // ==========================================================================
-mongoose.connect(MONGODB_URI)
-  .then(() => {
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected || mongoose.connection.readyState >= 1) {
+    isConnected = true;
+    return;
+  }
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+    });
+    isConnected = true;
     console.log(`Connected to MongoDB database at ${maskedMongoUri}`);
     seedDefaultProducts();
-  })
-  .catch(err => {
+  } catch (err) {
     console.error('MongoDB database connection error:', err);
-  });
+    throw err;
+  }
+};
+
+// Global middleware to ensure DB is connected before handling any request
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    res.status(500).json({ error: 'Database connection failed. Please try again later.' });
+  }
+});
 
 // ==========================================================================
 // 5. MONGOOSE SCHEMA & MODELS DEFINITIONS
