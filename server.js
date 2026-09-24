@@ -66,12 +66,8 @@ app.use((req, res, next) => {
       const isConfiguredOrigin = origin && ALLOWED_CLIENT_ORIGINS.includes(origin);
       const isDevLocalhost = origin && NODE_ENV === 'development' && origin.startsWith('http://localhost:');
 
-      // Allow requests with no origin (like mobile apps/curl), same-host app requests, or configured frontend origins.
-      if (!origin || isSameHost || isConfiguredOrigin || isDevLocalhost) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
+      // Allow all origins dynamically
+      callback(null, true);
     },
     credentials: true
   })(req, res, next);
