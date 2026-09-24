@@ -631,6 +631,83 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   }
 });
 
+// --- USER ADMINISTRATION ROUTES (Admin only) ---
+
+// 1. Fetch all users
+app.get('/api/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, '-password').sort({ _id: -1 });
+    res.json(users);
+  } catch (err) {
+    console.error('Fetch users database error:', err);
+    res.status(500).json({ error: 'Fetch users failed.' });
+  }
+});
+
+// 2. Update user role
+app.put('/api/users/:email/role', authenticateToken, requireAdmin, async (req, res) => {
+  const { role } = req.body;
+  if (!['user', 'admin'].includes(role)) {
+    return res.status(400).json({ error: 'Invalid role specified.' });
+  }
+  
+  try {
+    const user = await User.findOne({ email: req.params.email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+    
+    if (user.email === req.user.email) {
+      return res.status(400).json({ error: 'Cannot change your own role.' });
+    }
+    
+    user.role = role;
+    await user.save();
+    
+    res.json({ message: 'Role updated successfully', user: { email: user.email, name: user.name, role: user.role } });
+  } catch (err) {
+    console.error('Update role database error:', err);
+    res.status(500).json({ error: 'Update role failed.' });
+  }
+});
+
+// 3. Add a new user manually
+app.post('/api/users', authenticateToken, requireAdmin, async (req, res) => {
+  const { name, email, password, phone, role } = req.body;
+  
+  if (!validateName(name) || !validateEmail(email) || !validatePassword(password)) {
+    return res.status(400).json({ error: 'Invalid name, email, or password format.' });
+  }
+  
+  try {
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email already registered.' });
+    }
+    
+    const newUser = await User.create({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password,
+      phone: phone ? phone.trim() : null,
+      role: ['user', 'admin'].includes(role) ? role : 'user'
+    });
+    
+    res.status(201).json({
+      message: 'User created successfully',
+      user: {
+        email: newUser.email,
+        name: newUser.name,
+        phone: newUser.phone,
+        role: newUser.role
+      }
+    });
+  } catch (err) {
+    console.error('Create user database error:', err);
+    res.status(500).json({ error: 'User creation failed.' });
+  }
+});
+
 // --- PRODUCT CATALOG ROUTES ---
 
 // 1. Fetch catalog
