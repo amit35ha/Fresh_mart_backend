@@ -136,6 +136,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password: { type: String, required: true },
   name: { type: String, required: true, trim: true },
+  phone: { type: String, default: null },
   photo: { type: String, default: null },
   role: { type: String, enum: ['user', 'admin'], default: 'user' }
 });
@@ -402,6 +403,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         user: {
           email: user.email,
           name: user.name,
+          phone: user.phone,
           photo: user.photo,
           role: user.role
         },
@@ -418,9 +420,9 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
 
 // 2. Credentials Registration
 app.post('/api/auth/register', authLimiter, async (req, res) => {
-  let { name, email, password } = req.body;
+  let { name, email, password, phone } = req.body;
   
-  if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string') {
+  if (typeof name !== 'string' || typeof email !== 'string' || typeof password !== 'string' || typeof phone !== 'string') {
     return res.status(400).json({ error: 'Invalid inputs.' });
   }
   
@@ -436,6 +438,9 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
   if (!validatePassword(password)) {
     return res.status(400).json({ error: 'Password must be 8-64 characters long, containing uppercase, lowercase, numbers, and symbols.' });
   }
+  if (!validatePhone(phone)) {
+    return res.status(400).json({ error: 'Customer phone is invalid (must be 10-15 digits).' });
+  }
 
   try {
     const exists = await User.findOne({ email });
@@ -446,6 +451,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       name,
       email,
       password,
+      phone: phone.trim(),
       role: 'user'
     });
     
@@ -459,6 +465,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
       user: {
         email: newUser.email,
         name: newUser.name,
+        phone: newUser.phone,
         photo: newUser.photo,
         role: newUser.role
       },
@@ -535,6 +542,7 @@ app.post('/api/auth/google', (req, res, next) => {
       user: {
         email: user.email,
         name: user.name,
+        phone: user.phone,
         photo: user.photo,
         role: user.role
       },
@@ -589,6 +597,7 @@ app.put('/api/auth/profile', authenticateToken, async (req, res) => {
     res.json({
       email: user.email,
       name: user.name,
+      phone: user.phone,
       photo: user.photo,
       role: user.role
     });
@@ -836,6 +845,17 @@ app.post('/api/orders', optionalAuthenticateToken, orderLimiter, async (req, res
   let finalCustomerEmail;
   if (req.user) {
     finalCustomerEmail = req.user.email.toLowerCase();
+    
+    // Automatically save phone number if they don't have one
+    try {
+      const user = await User.findById(req.user.id);
+      if (user && !user.phone) {
+        user.phone = customerPhone.trim();
+        await user.save();
+      }
+    } catch (e) {
+      console.error('Failed to update missing phone on order creation', e);
+    }
   } else {
     if (!validateEmail(customerEmail)) {
       return res.status(400).json({ error: 'Customer email is invalid.' });
